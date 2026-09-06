@@ -1,0 +1,144 @@
+<div>
+  <app-page-breadcrumb [pageTitle]="isEdit ? 'Edit Product' : 'New Product'" />
+
+  <div class="mx-auto max-w-3xl">
+    <div class="rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div class="p-5 border-b border-gray-100 sm:p-6 dark:border-white/[0.05]">
+        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">
+          {{ isEdit ? 'Edit product' : 'Create a new product' }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Fill in the details below. Price and SKU are stored per variant.
+        </p>
+      </div>
+
+      @if (loading) {
+        <div class="p-6 text-sm text-gray-500 dark:text-gray-400">Loading…</div>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="save()" class="p-5 space-y-5 sm:p-6">
+          @if (submitError) {
+            <div class="rounded-lg border border-error-300 bg-error-50 px-4 py-3 text-sm text-error-600 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
+              {{ submitError }}
+            </div>
+          }
+
+          <!-- Name -->
+          <div>
+            <label for="name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+              Product name <span class="text-error-500">*</span>
+            </label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              placeholder="e.g. Wireless Mouse"
+              [class]="inputClass"
+              [ngClass]="{ 'border-error-500 focus:border-error-300 focus:ring-error-500/20': invalid('name') }"
+            />
+            @if (invalid('name')) {
+              <p class="mt-1.5 text-xs text-error-500">Name is required (min 2 characters).</p>
+            }
+          </div>
+
+          <!-- Category + Status -->
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label for="category" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Category</label>
+              <select id="category" formControlName="categoryId" [class]="inputClass">
+                <option value="">Uncategorized</option>
+                @for (c of categories; track c.id) {
+                  <option [value]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Status</span>
+              <label class="inline-flex cursor-pointer items-center gap-2 pt-2.5">
+                <input type="checkbox" formControlName="isActive" class="size-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900" />
+                <span class="text-sm text-gray-700 dark:text-gray-400">Active</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label for="description" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Description</label>
+            <textarea
+              id="description"
+              formControlName="description"
+              rows="3"
+              placeholder="Short description…"
+              [class]="inputClass + ' py-2.5'"
+            ></textarea>
+          </div>
+
+          <!-- Variants -->
+          <div formArrayName="variants">
+            <div class="mb-2 flex items-center justify-between">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-400">Variants</label>
+              <button
+                type="button"
+                (click)="addVariant()"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+                Add variant
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              @for (group of variants.controls; track $index) {
+                <div [formGroupName]="$index" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="text"
+                    formControlName="sku"
+                    placeholder="SKU"
+                    [class]="inputClass + ' sm:flex-1'"
+                  />
+                  <div class="relative sm:w-40">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      formControlName="price"
+                      placeholder="Price"
+                      [class]="inputClass + ' pl-7'"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeVariant($index)"
+                    [disabled]="variants.length === 1"
+                    title="Remove variant"
+                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 p-2.5 text-gray-500 transition-colors hover:bg-error-50 hover:text-error-500 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:hover:bg-error-500/10"
+                  >
+                    <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none"><path d="M3 6H5H21M8 6V4C8 2.9 8.9 2 10 2H14C15.1 2 16 2.9 16 4V6M19 6V20C19 21.1 18.1 22 17 22H7C5.9 22 5 21.1 5 20V6H19Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              (click)="cancel()"
+              class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              [disabled]="saving"
+              class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-brand-600 disabled:opacity-60"
+            >
+              {{ saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Create product') }}
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>
