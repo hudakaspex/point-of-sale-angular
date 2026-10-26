@@ -44,10 +44,6 @@ import { FormsModule } from '@angular/forms';
       letter-spacing: -0.01em;
     }
 
-    .signin-providers {
-      gap: var(--signin-space-tight);
-    }
-
     .signin-rule {
       padding-block: var(--signin-space-tight);
     }
@@ -58,12 +54,6 @@ import { FormsModule } from '@angular/forms';
 
     .signin-alt {
       margin-top: var(--signin-space);
-    }
-
-    @media (min-width: 640px) {
-      .signin-providers {
-        gap: 1.25rem;
-      }
     }
 
     /* 40px hit area inset in the 44px field, so the focus ring stays inside it */
