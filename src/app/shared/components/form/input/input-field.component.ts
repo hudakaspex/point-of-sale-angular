@@ -16,6 +16,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
         [max]="max"
         [step]="step"
         [disabled]="disabled"
+        [attr.autocomplete]="autocomplete ?? null"
         [ngClass]="inputClasses"
         (input)="onInput($event)"
       />
@@ -39,6 +40,7 @@ export class InputFieldComponent {
   @Input() id?: string = '';
   @Input() name?: string = '';
   @Input() placeholder?: string = '';
+  @Input() autocomplete?: string;
   @Input() value: string | number = '';
   @Input() min?: string;
   @Input() max?: string;
@@ -52,7 +54,7 @@ export class InputFieldComponent {
   @Output() valueChange = new EventEmitter<string | number>();
 
   get inputClasses(): string {
-    let inputClasses = `h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${this.className}`;
+    let inputClasses = `h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-base [@media(min-width:640px)_and_(pointer:fine)]:text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${this.className}`;
 
     if (this.disabled) {
       inputClasses += ` text-gray-500 border-gray-300 opacity-40 bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 opacity-40`;
