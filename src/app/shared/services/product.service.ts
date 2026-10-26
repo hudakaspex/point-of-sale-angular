@@ -6,11 +6,14 @@ import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Product } from '../models/product.model';
 import { Category } from '../models/category.model';
+import { Attribute } from '../models/attribute.model';
 
 /** Payload used by the create/edit form (keeps the full nested entity out of the form). */
 export interface VariantInput {
   sku: string;
   price: number;
+  isActive?: boolean;
+  attributeValueIds: string[];
 }
 
 export interface ProductInput {
@@ -60,6 +63,22 @@ export class ProductService {
     return this.http.get<Category[]>(`${this.base}/categories`).pipe(
       catchError(() => of([] as Category[]))
     );
+  }
+
+  /** GET /attributes — values come nested; falls back to demo data for UI preview. */
+  listAttributes(): Observable<Attribute[]> {
+    return this.http.get<Attribute[]>(`${this.base}/attributes`).pipe(
+      catchError(() => of(this.dummyAttributes()))
+    );
+  }
+
+  private dummyAttributes(): Attribute[] {
+    return [
+      { id: 'attr-color', name: 'Color', values: [{ id: 'av-red', value: 'Red', attribute: { id: 'attr-color', name: 'Color' } as any } as any, { id: 'av-black', value: 'Black', attribute: { id: 'attr-color', name: 'Color' } as any } as any, { id: 'av-white', value: 'White', attribute: { id: 'attr-color', name: 'Color' } as any } as any, { id: 'av-blue', value: 'Navy', attribute: { id: 'attr-color', name: 'Color' } as any } as any, { id: 'av-titanium', value: 'Titanium', attribute: { id: 'attr-color', name: 'Color' } as any } as any] } as Attribute,
+      { id: 'attr-size', name: 'Size', values: [{ id: 'av-s', value: 'S' } as any, { id: 'av-m', value: 'M' } as any, { id: 'av-l', value: 'L' } as any, { id: 'av-xl', value: 'XL' } as any] } as Attribute,
+      { id: 'attr-storage', name: 'Storage', values: [{ id: 'av-128', value: '128GB' } as any, { id: 'av-256', value: '256GB' } as any, { id: 'av-512', value: '512GB' } as any, { id: 'av-1tb', value: '1TB' } as any] } as Attribute,
+      { id: 'attr-material', name: 'Material', values: [{ id: 'av-alum', value: 'Aluminum' } as any, { id: 'av-titan', value: 'Titanium' } as any, { id: 'av-leather', value: 'Leather' } as any] } as Attribute,
+    ];
   }
 
   // ---- Display helpers (price/SKU live on Variant, not Product) ----

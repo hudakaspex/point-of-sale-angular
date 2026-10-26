@@ -4,6 +4,7 @@ import { NotFoundComponent } from './pages/other-page/not-found/not-found.compon
 import { SignInComponent } from './pages/auth-pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { ProductsComponent } from './pages/products/products.component';
+import { ProductAttributesComponent } from './pages/product-attributes/product-attributes.component';
 import { ProductFormComponent } from './pages/products/product-form/product-form.component';
 
 // Hidden pages (imports commented for easy restore alongside their routes below).
@@ -44,6 +45,11 @@ export const routes: Routes = [
         path: 'products/new',
         component: ProductFormComponent,
         title: 'New Product | Point of Sale',
+      },
+            {
+        path: 'product-attributes',
+        component: ProductAttributesComponent,
+        title: 'Product Attributes | Point of Sale',
       },
       {
         path: 'products/:id/edit',

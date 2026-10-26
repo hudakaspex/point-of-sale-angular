@@ -1,144 +1,273 @@
-<div>
+﻿<div class="mx-auto max-w-5xl">
   <app-page-breadcrumb [pageTitle]="isEdit ? 'Edit Product' : 'New Product'" />
 
-  <div class="mx-auto max-w-3xl">
-    <div class="rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-      <div class="p-5 border-b border-gray-100 sm:p-6 dark:border-white/[0.05]">
-        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">
-          {{ isEdit ? 'Edit product' : 'Create a new product' }}
-        </h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Fill in the details below. Price and SKU are stored per variant.
-        </p>
+  @if (loading) {
+    <div class="rounded-2xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">Loading product…</div>
+  } @else {
+  <form [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+
+    @if (submitError) {
+      <div class="rounded-2xl border border-error-300 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300 flex gap-3 items-start">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M21 12C21 16.97 16.97 21 12 21C7.03 21 3 16.97 3 12C3 7.03 7.03 3 12 3C16.97 3 21 7.03 21 12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>{{ submitError }}</span>
+      </div>
+    }
+
+    <!-- Card 1 — Product details (template: Products Description) -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800 flex items-center justify-between">
+        <h2 class="text-[15px] font-semibold tracking-tight text-gray-800 dark:text-white">Product details</h2>
+        <span class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-white/5 dark:text-gray-400 dark:ring-white/10">
+          <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span> Price & SKU live on variants
+        </span>
+      </div>
+      <div class="p-4 sm:p-6">
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <!-- Name -->
+          <div class="md:col-span-2">
+            <label for="p-name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Product name <span class="text-error-500">*</span></label>
+            <input id="p-name" type="text" formControlName="name" placeholder="e.g. MacBook Pro 14&quot; M4" [class]="inputClass" [ngClass]="{'!border-error-500 focus:!border-error-300 focus:!ring-error-500/20': invalid('name')}" />
+            @if (invalid('name')) { <p class="mt-1.5 text-xs text-error-500">Name is required — at least 2 characters.</p> }
+          </div>
+
+          <div>
+            <label for="p-category" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+            <select id="p-category" formControlName="categoryId" [class]="inputClass">
+              <option value="">Uncategorized</option>
+              @for (c of categories; track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+            </select>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Self-referential tree — parent stored on category.</p>
+          </div>
+
+          <div>
+            <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Availability</span>
+            <label class="flex h-11 items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 dark:border-gray-800 dark:bg-white/[0.03]">
+              <input type="checkbox" formControlName="isActive" class="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900" />
+              <span class="text-sm font-medium" [ngClass]="form.get('isActive')?.value ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'">{{ form.get('isActive')?.value ? 'Active — visible at POS & storefront' : 'Inactive — hidden from sales' }}</span>
+            </label>
+          </div>
+
+          <div class="md:col-span-2">
+            <label for="p-desc" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Description <span class="text-xs font-normal text-gray-400">(optional)</span></label>
+            <textarea id="p-desc" formControlName="description" rows="4" placeholder="Short description shown on receipts and listings…" [class]="inputClass + ' h-auto py-3 resize-none'"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2 — Options / Attributes (the core of this task) -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="text-[15px] font-semibold tracking-tight text-gray-800 dark:text-white">Options</h2>
+            <p class="mt-1 max-w-2xl text-sm leading-5 text-gray-500 dark:text-gray-400">Pick attributes that define this product&#39;s variants. Each variant is one combination of the selected values — e.g. <span class="font-medium text-gray-700 dark:text-gray-300">Color: Black</span> + <span class="font-medium text-gray-700 dark:text-gray-300">Storage: 256GB</span>. Attributes are managed centrally; values here use autocomplete.</p>
+          </div>
+          <span class="inline-flex shrink-0 items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-500/20">{{ selectedAttrIds().size }} selected</span>
+        </div>
       </div>
 
-      @if (loading) {
-        <div class="p-6 text-sm text-gray-500 dark:text-gray-400">Loading…</div>
-      } @else {
-        <form [formGroup]="form" (ngSubmit)="save()" class="p-5 space-y-5 sm:p-6">
-          @if (submitError) {
-            <div class="rounded-lg border border-error-300 bg-error-50 px-4 py-3 text-sm text-error-600 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
-              {{ submitError }}
-            </div>
-          }
-
-          <!-- Name -->
-          <div>
-            <label for="name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-              Product name <span class="text-error-500">*</span>
-            </label>
-            <input
-              id="name"
-              type="text"
-              formControlName="name"
-              placeholder="e.g. Wireless Mouse"
-              [class]="inputClass"
-              [ngClass]="{ 'border-error-500 focus:border-error-300 focus:ring-error-500/20': invalid('name') }"
-            />
-            @if (invalid('name')) {
-              <p class="mt-1.5 text-xs text-error-500">Name is required (min 2 characters).</p>
+      <div class="p-4 sm:p-6 space-y-5">
+        <!-- Attribute picker -->
+        <div>
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Available attributes</p>
+          <div class="flex flex-wrap gap-2">
+            @for (attr of attributes; track attr.id) {
+              <button type="button" (click)="toggleAttribute(attr.id)"
+                class="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition"
+                [ngClass]="isAttrSelected(attr.id)
+                  ? 'border-brand-500 bg-brand-500 text-white shadow-theme-xs'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/5'">
+                @if (isAttrSelected(attr.id)) {
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                }
+                {{ attr.name }}
+                <span class="rounded-full bg-white/20 px-1.5 py-0 text-[11px] font-semibold" [ngClass]="isAttrSelected(attr.id) ? 'text-white' : 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400'">{{ attr.values.length }}</span>
+              </button>
             }
           </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Attributes come from <code class="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs dark:bg-white/10">GET /attributes</code>. Manage them on the dedicated Attributes page — values are autocompleted here, not created inline.</p>
+        </div>
 
-          <!-- Category + Status -->
-          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <label for="category" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Category</label>
-              <select id="category" formControlName="categoryId" [class]="inputClass">
-                <option value="">Uncategorized</option>
-                @for (c of categories; track c.id) {
-                  <option [value]="c.id">{{ c.name }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Status</span>
-              <label class="inline-flex cursor-pointer items-center gap-2 pt-2.5">
-                <input type="checkbox" formControlName="isActive" class="size-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900" />
-                <span class="text-sm text-gray-700 dark:text-gray-400">Active</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Description -->
-          <div>
-            <label for="description" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Description</label>
-            <textarea
-              id="description"
-              formControlName="description"
-              rows="3"
-              placeholder="Short description…"
-              [class]="inputClass + ' py-2.5'"
-            ></textarea>
-          </div>
-
-          <!-- Variants -->
-          <div formArrayName="variants">
-            <div class="mb-2 flex items-center justify-between">
-              <label class="text-sm font-medium text-gray-700 dark:text-gray-400">Variants</label>
-              <button
-                type="button"
-                (click)="addVariant()"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
-                Add variant
-              </button>
-            </div>
-
-            <div class="space-y-3">
-              @for (group of variants.controls; track $index) {
-                <div [formGroupName]="$index" class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <input
-                    type="text"
-                    formControlName="sku"
-                    placeholder="SKU"
-                    [class]="inputClass + ' sm:flex-1'"
-                  />
-                  <div class="relative sm:w-40">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      formControlName="price"
-                      placeholder="Price"
-                      [class]="inputClass + ' pl-7'"
-                    />
+        @if (hasOptions()) {
+          <div class="space-y-4 border-t border-gray-100 pt-5 dark:border-white/5">
+            @for (attr of selectedAttributes(); track attr.id) {
+              <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-4 dark:border-gray-800 dark:bg-white/[0.02]">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-bold text-brand-600 ring-1 ring-gray-200 dark:bg-white/5 dark:text-brand-300 dark:ring-white/10">{{ attr.name.slice(0,2).toUpperCase() }}</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-white">{{ attr.name }}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedValuesFor(attr.id).length }} value(s)</span>
                   </div>
-                  <button
-                    type="button"
-                    (click)="removeVariant($index)"
-                    [disabled]="variants.length === 1"
-                    title="Remove variant"
-                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 p-2.5 text-gray-500 transition-colors hover:bg-error-50 hover:text-error-500 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:hover:bg-error-500/10"
-                  >
-                    <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none"><path d="M3 6H5H21M8 6V4C8 2.9 8.9 2 10 2H14C15.1 2 16 2.9 16 4V6M19 6V20C19 21.1 18.1 22 17 22H7C5.9 22 5 21.1 5 20V6H19Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                  <button type="button" (click)="toggleAttribute(attr.id)" class="text-xs font-medium text-gray-500 hover:text-error-600 dark:text-gray-400">Remove</button>
+                </div>
+
+                <!-- selected chips -->
+                @if (selectedValuesFor(attr.id).length) {
+                  <div class="mt-3 flex flex-wrap gap-1.5">
+                    @for (v of selectedValuesFor(attr.id); track v.id) {
+                      <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:ring-white/10">
+                        {{ v.value }}
+                        <button type="button" (click)="removeSelectedValue(attr.id, v.id)" class="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10" aria-label="Remove">×</button>
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- autocomplete -->
+                <div class="relative mt-3">
+                  <div class="relative">
+                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none"><path d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    <input type="text" [value]="attrSearch().get(attr.id) ?? ''" (input)="setSearch(attr.id, $any($event.target).value)" (focus)="showValueDropdown.set(attr.id)" placeholder="Search {{ attr.name | lowercase }} values…" class="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-9 text-sm placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    @if ((attrSearch().get(attr.id) ?? '').length) {
+                      <button type="button" (click)="setSearch(attr.id, '')" class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600">×</button>
+                    }
+                  </div>
+                  @if (showValueDropdown() === attr.id) {
+                    <div class="absolute z-10 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                      @for (val of filteredValues(attr); track val.id) {
+                        <button type="button" (click)="toggleValue(attr.id, val.id)" class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5">
+                          <span [ngClass]="isValueSelected(attr.id, val.id) ? 'font-semibold text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'">{{ val.value }}</span>
+                          @if (isValueSelected(attr.id, val.id)) { <span class="text-brand-600 dark:text-brand-400">✓</span> }
+                        </button>
+                      }
+                      @if (!filteredValues(attr).length) { <p class="px-3 py-2 text-sm text-gray-500">No match — values are curated on the Attributes page.</p> }
+                      <div class="border-t border-gray-100 px-3 py-1.5 dark:border-white/5">
+                        <button type="button" (click)="showValueDropdown.set(null)" class="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400">Done</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- generate bar -->
+            <div class="flex flex-wrap items-center gap-2 rounded-xl bg-brand-50 px-3 py-3 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20">
+              <div class="flex-1 min-w-[200px] text-sm">
+                @if (canGenerate()) {
+                  <span class="font-medium text-brand-800 dark:text-brand-200">{{ selectedAttrIds().size }} option(s) → will create combinations from selected values.</span>
+                } @else {
+                  <span class="text-amber-800 dark:text-amber-200">Select at least one value per chosen attribute to generate variants.</span>
+                }
+              </div>
+              <button type="button" (click)="generateVariants()" [disabled]="!canGenerate()" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40">Generate variants</button>
+            </div>
+          </div>
+        } @else {
+          <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50/40 px-4 py-6 text-center dark:border-gray-700 dark:bg-white/[0.02]">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">No options selected</p>
+            <p class="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">Add options when a product comes in several forms (size, color, storage). If this product has no options, skip this section — variants can be managed manually below.</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Card 3 — Variants matrix -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-[15px] font-semibold tracking-tight text-gray-800 dark:text-white">Variants <span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 ring-1 ring-gray-200 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">{{ variantCount() }}</span></h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Each row is a sellable SKU. <span class="font-medium text-gray-700 dark:text-gray-300">{{ priceSpread() }}</span> across variants.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 dark:border-gray-700 dark:bg-gray-900">
+              <span class="px-1 text-xs font-medium text-gray-500 dark:text-gray-400">$</span>
+              <input type="number" min="0" step="0.01" placeholder="Bulk price" [value]="bulkPrice ?? ''" (input)="bulkPrice = $any($event.target).value === '' ? null : +$any($event.target).value" class="w-24 border-0 bg-transparent p-0 text-sm focus:ring-0 dark:text-white" />
+              <button type="button" (click)="applyBulkPrice()" class="rounded-md bg-gray-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-black dark:bg-white dark:text-gray-900">Apply to all</button>
+            </div>
+            <button type="button" (click)="autoGenerateSkus()" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">Auto SKU</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-6">
+        <div formArrayName="variants" class="space-y-3">
+          @for (group of variants.controls; track $index) {
+            <div [formGroupName]="$index" class="group relative rounded-xl border bg-white p-4 shadow-theme-xs transition dark:bg-gray-900/40"
+                 [ngClass]="variantInvalid($index, 'sku') || variantInvalid($index, 'price') ? 'border-error-300 ring-1 ring-error-500/10 dark:border-error-500/40' : 'border-gray-200 hover:border-gray-300 dark:border-gray-800'">
+              <!-- row header -->
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-[11px] font-bold text-white">#{{ $index + 1 }}</span>
+                    <span class="truncate text-sm font-semibold text-gray-800 dark:text-white">{{ variantLabel(group) }}</span>
+                    @if (!group.get('isActive')?.value) { <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-white/5 dark:text-gray-400">Disabled</span> }
+                  </div>
+                  @if ((group.get('attributeValueIds')?.value ?? []).length) {
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                      @for (vid of group.get('attributeValueIds')?.value; track vid) {
+                        <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-500/20">
+                          <span class="text-[10px] uppercase tracking-wide opacity-70">{{ getAttrName(vid) }}</span> {{ getValueLabel(vid) }}
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <p class="mt-1 text-xs text-amber-600 dark:text-amber-300">No options assigned — pick from the Options section or assign below.</p>
+                  }
+                </div>
+                <label class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                  <input type="checkbox" formControlName="isActive" class="h-3.5 w-3.5 rounded border-gray-300 text-brand-600" /> Active
+                </label>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end">
+                <div class="sm:col-span-6">
+                  <label [for]="'sku-'+$index" class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">SKU <span class="text-error-500">*</span></label>
+                  <input [id]="'sku-'+$index" type="text" formControlName="sku" placeholder="e.g. MBP-M4-14-SB-512" class="h-10 w-full rounded-lg border px-3 py-2 font-mono text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:bg-gray-900 dark:text-white/90" [ngClass]="variantInvalid($index,'sku') ? 'border-error-500' : 'border-gray-300 dark:border-gray-700'" />
+                  @if (variantInvalid($index,'sku')) { <p class="mt-1 text-xs text-error-500">SKU is required.</p> }
+                </div>
+                <div class="sm:col-span-4">
+                  <label [for]="'price-'+$index" class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Price <span class="text-error-500">*</span></label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                    <input [id]="'price-'+$index" type="number" min="0" step="0.01" formControlName="price" placeholder="0.00" class="h-10 w-full rounded-lg border border-gray-300 pl-7 pr-3 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" [ngClass]="variantInvalid($index,'price') ? '!border-error-500' : ''" />
+                  </div>
+                  @if (variantInvalid($index,'price')) { <p class="mt-1 text-xs text-error-500">Price ≥ 0 required.</p> }
+                </div>
+                <div class="flex gap-1.5 sm:col-span-2 sm:justify-end">
+                  <button type="button" (click)="duplicateVariant($index)" title="Duplicate" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M8 8H16C17.1046 8 18 8.89543 18 10V18C18 19.1046 17.1046 20 16 20H8C6.89543 20 6 19.1046 6 18V10C6 8.89543 6.89543 8 8 8Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 8V6C16 4.89543 15.1046 4 14 4H6C4.89543 4 4 4.89543 4 6V14C4 15.1046 4.89543 16 6 16H8" stroke="currentColor" stroke-width="1.5"/></svg>
                   </button>
+                  <button type="button" (click)="removeVariant($index)" [disabled]="variants.length === 1" title="Remove" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-error-50 hover:text-error-600 disabled:opacity-30 dark:border-gray-700 dark:bg-white/[0.03]">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M3 6H21M8 6V4H16V6M19 6V20H5V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- compact option reassign when no generate used -->
+              @if ((group.get('attributeValueIds')?.value ?? []).length === 0 && hasOptions()) {
+                <div class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
+                  Tip: click <span class="font-semibold">Generate variants</span> above to auto-build every combination, or assign options manually per row in a future step. For now add at least a SKU & price — options can be picked above.
                 </div>
               }
             </div>
-          </div>
+          }
+        </div>
 
-          <!-- Footer -->
-          <div class="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              (click)="cancel()"
-              class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              [disabled]="saving"
-              class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-brand-600 disabled:opacity-60"
-            >
-              {{ saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Create product') }}
-            </button>
-          </div>
-        </form>
-      }
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" (click)="addEmptyVariant()" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Add variant
+          </button>
+          @if (variants.length > 1) {
+            <button type="button" (click)="clearAllVariants()" class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-error-600 dark:text-gray-400">Clear all</button>
+          }
+          <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 self-center">Model: <code class="rounded bg-gray-100 px-1 font-mono dark:bg-white/10">Variant.sku</code>, <code class="rounded bg-gray-100 px-1 font-mono dark:bg-white/10">price</code>, <code class="rounded bg-gray-100 px-1 font-mono dark:bg-white/10">isActive</code>, <code class="rounded bg-gray-100 px-1 font-mono dark:bg-white/10">attributeValueIds[]</code></span>
+        </div>
+      </div>
     </div>
-  </div>
+
+    <!-- footer -->
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white px-4 py-4 dark:border-gray-800 dark:bg-white/[0.03]">
+      <button type="button" (click)="cancel()" class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">Cancel</button>
+      <div class="flex gap-2 sm:justify-end">
+        <button type="submit" [disabled]="saving" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50">
+          @if (saving) { <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M4 12A8 8 0 0112 4" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="opacity-75"/></svg> Saving… } @else { {{ isEdit ? 'Save changes' : 'Create product' }} }
+        </button>
+      </div>
+    </div>
+
+  </form>
+  }
 </div>
